@@ -6,32 +6,38 @@ import { useEffect, useState, ChangeEventHandler, useTransition } from 'react';
 import { SearchIcon } from '@chakra-ui/icons';
 import Fuse from 'fuse.js';
 
+const options: Fuse.IFuseOptions<unknown> = {
+	threshold: 0.2,
+	includeScore: true,
+	minMatchCharLength: 1,
+};
+
 export const ViewData = () => {
 	const [search, setSearch] = useState('');
-	const { tableData, columns } = useDataStore();
-	const [fuse, setFuse] = useState(
-		new Fuse(tableData || [], { includeScore: true, minMatchCharLength: 2, keys: columns.map((c) => c.key) })
-	);
+	const { tableData, columns, viewColumns, indexKeys } = useDataStore();
+	const [fuse, setFuse] = useState(new Fuse(tableData || [], { ...options, keys: indexKeys }));
 	const [filtedData, SetFiltedData] = useState(tableData);
 	const [isPending, startTransition] = useTransition();
 
 	useEffect(() => {
-		setFuse(new Fuse(tableData || [], { includeScore: true, minMatchCharLength: 2, keys: columns.map((c) => c.key) }));
-		console.log(columns.map((c) => c.key));
-	}, [tableData]);
+		setFuse(new Fuse(tableData || [], { ...options, keys: indexKeys }));
+		console.log(indexKeys);
+	}, [tableData, indexKeys]);
 
-	const onSearchChange: ChangeEventHandler<HTMLInputElement> = (e) => {
-		const searchString = e.target.value;
-		setSearch(e.target.value);
+	useEffect(() => {
 		startTransition(() => {
-			if (searchString == '') {
+			if (search == '') {
 				SetFiltedData(tableData);
 				return;
 			}
-			const result = fuse.search(searchString);
+			const result = fuse.search(search);
 			console.log(result);
 			SetFiltedData(result.map((x) => x.item));
 		});
+	}, [fuse, search]);
+
+	const onSearchChange: ChangeEventHandler<HTMLInputElement> = (e) => {
+		setSearch(e.target.value);
 	};
 
 	return (
@@ -57,9 +63,8 @@ export const ViewData = () => {
 			) : (
 				<DataGrid
 					rows={filtedData}
-					columns={columns}
+					columns={viewColumns}
 					defaultColumnOptions={{
-						sortable: true,
 						resizable: true,
 					}}
 					style={{ blockSize: '100%' }}

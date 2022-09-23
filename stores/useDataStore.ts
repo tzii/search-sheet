@@ -8,21 +8,25 @@ interface DataState {
 	importDate: Date | null;
 	selectedSheet: string | null;
 	columns: Column<unknown, unknown>[];
-	viewHeaders: string[];
+	viewColumns: Column<unknown, unknown>[];
+	indexKeys: string[];
 	workBook: WorkBook | null;
 	tableData: unknown[] | null;
 	importWorkBook: (workBook: WorkBook, fileName: string) => void;
+	updateViewColumns: (cs: string[]) => void;
+	updateIndexKeys: (keys: string[]) => void;
 }
 
 export const useDataStore = create<DataState>()(
 	devtools(
 		persist(
-			(set) => ({
+			(set, get) => ({
 				fileName: null,
 				selectedSheet: null,
 				importDate: null,
 				columns: [],
-				viewHeaders: [],
+				viewColumns: [],
+				indexKeys: [],
 				workBook: null,
 				tableData: null,
 				importWorkBook: (workBook, fileName: string) => {
@@ -37,9 +41,16 @@ export const useDataStore = create<DataState>()(
 						columns: Object.keys(headerMap).map((key) => ({ key, name: headerMap[key] })),
 						workBook,
 						tableData,
-						viewHeaders: Object.keys(headerMap),
+						viewColumns: Object.keys(headerMap).map((key) => ({ key, name: headerMap[key] })),
+						indexKeys: Object.keys(headerMap),
 						importDate: new Date(),
 					});
+				},
+				updateViewColumns: (cs: string[]) => {
+					set({ viewColumns: get().columns.filter((column) => cs.includes(column.key)) });
+				},
+				updateIndexKeys: (keys: string[]) => {
+					set({ indexKeys: keys });
 				},
 			}),
 			{
