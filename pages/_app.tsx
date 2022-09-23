@@ -8,6 +8,7 @@ function MyApp({ Component, pageProps }: AppProps) {
 		<ChakraProvider>
 			<Head>
 				<title>Đông bán thuốc</title>
+				<link rel="icon" href="/dong.gif" type="image/gif" />
 				{/* <meta name="viewport" content="initial-scale=1.0, width=device-width" /> */}
 			</Head>
 			<Component {...pageProps} />
