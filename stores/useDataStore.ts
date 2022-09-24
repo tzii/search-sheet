@@ -2,6 +2,7 @@ import create from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { utils, WorkBook } from 'xlsx';
 import { Column } from 'react-data-grid';
+import Fuse from 'fuse.js';
 
 interface DataState {
 	fileName: string | null;
@@ -9,12 +10,13 @@ interface DataState {
 	selectedSheet: string | null;
 	columns: Column<unknown, unknown>[];
 	viewColumns: Column<unknown, unknown>[];
-	indexKeys: string[];
 	workBook: WorkBook | null;
 	tableData: unknown[] | null;
+	fuseOptions: Fuse.IFuseOptions<unknown>;
 	importWorkBook: (workBook: WorkBook, fileName: string) => void;
 	updateViewColumns: (cs: string[]) => void;
 	updateIndexKeys: (keys: string[]) => void;
+	updateThreshold: (t: number) => void;
 }
 
 export const useDataStore = create<DataState>()(
@@ -26,9 +28,14 @@ export const useDataStore = create<DataState>()(
 				importDate: null,
 				columns: [],
 				viewColumns: [],
-				indexKeys: [],
 				workBook: null,
 				tableData: null,
+				fuseOptions: {
+					threshold: 0.2,
+					includeScore: true,
+					ignoreLocation: true,
+					keys: [] as string[],
+				},
 				importWorkBook: (workBook, fileName: string) => {
 					if (!workBook.SheetNames.length) return;
 					const selectedSheet = workBook.SheetNames[0];
@@ -42,15 +49,19 @@ export const useDataStore = create<DataState>()(
 						workBook,
 						tableData,
 						viewColumns: Object.keys(headerMap).map((key) => ({ key, name: headerMap[key] })),
-						indexKeys: Object.keys(headerMap),
+						fuseOptions: { ...get().fuseOptions, keys: Object.keys(headerMap) },
 						importDate: new Date(),
 					});
 				},
+
 				updateViewColumns: (cs: string[]) => {
 					set({ viewColumns: cs.map((c) => get().columns.find((column) => column.key == c) as Column<unknown>) });
 				},
 				updateIndexKeys: (keys: string[]) => {
-					set({ indexKeys: keys });
+					set({ fuseOptions: { ...get().fuseOptions, keys } });
+				},
+				updateThreshold: (t: number) => {
+					set({ fuseOptions: { ...get().fuseOptions, threshold: t } });
 				},
 			}),
 			{

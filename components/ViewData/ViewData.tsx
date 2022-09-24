@@ -1,13 +1,13 @@
-import { Box, Flex, Input, InputGroup, InputLeftAddon, Text } from '@chakra-ui/react';
-import { useDataStore } from '@stores';
-import Image from 'next/image';
-import DataGrid, { CopyEvent, HeaderRendererProps, Row } from 'react-data-grid';
-import { useEffect, useState, ChangeEventHandler, useTransition, useMemo } from 'react';
 import { SearchIcon } from '@chakra-ui/icons';
+import { Flex, Input, InputGroup, InputLeftAddon, Text } from '@chakra-ui/react';
+import { useDataStore } from '@stores';
 import Fuse from 'fuse.js';
-import { DraggableHeaderRenderer } from './DragableHeader';
+import Image from 'next/image';
+import { ChangeEventHandler, useEffect, useMemo, useState, useTransition } from 'react';
+import DataGrid, { CopyEvent, HeaderRendererProps } from 'react-data-grid';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DraggableHeaderRenderer } from './DragableHeader';
 
 const options: Fuse.IFuseOptions<unknown> = {
 	threshold: 0.2,
@@ -17,8 +17,8 @@ const options: Fuse.IFuseOptions<unknown> = {
 
 export const ViewData = () => {
 	const [search, setSearch] = useState('');
-	const { tableData, columns, viewColumns, indexKeys, updateViewColumns } = useDataStore();
-	const [fuse, setFuse] = useState(new Fuse(tableData || [], { ...options, keys: indexKeys }));
+	const { tableData, columns, viewColumns, updateViewColumns, fuseOptions } = useDataStore();
+	const [fuse, setFuse] = useState(new Fuse(tableData || [], { ...fuseOptions }));
 	const [filtedData, SetFiltedData] = useState(tableData);
 	const [isPending, startTransition] = useTransition();
 	const draggableColumns = useMemo(() => {
@@ -40,8 +40,8 @@ export const ViewData = () => {
 		return viewColumns.map((c) => ({ ...c, headerRenderer }));
 	}, [viewColumns]);
 	useEffect(() => {
-		setFuse(new Fuse(tableData || [], { ...options, keys: indexKeys }));
-	}, [tableData, indexKeys]);
+		setFuse(new Fuse(tableData || [], { ...fuseOptions }));
+	}, [tableData, fuseOptions]);
 
 	useEffect(() => {
 		startTransition(() => {
