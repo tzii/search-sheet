@@ -1,3 +1,4 @@
+import { DeleteIcon } from '@chakra-ui/icons';
 import {
 	Accordion,
 	AccordionButton,
@@ -8,6 +9,9 @@ import {
 	Button,
 	Checkbox,
 	CheckboxGroup,
+	FormControl,
+	FormLabel,
+	Select,
 	Slider,
 	SliderFilledTrack,
 	SliderMark,
@@ -23,11 +27,22 @@ import { read, utils } from 'xlsx';
 import ThresholdSetting from './ThresholdSetting';
 
 export const SettingsBar = () => {
-	const [showTooltip, setShowTooltip] = useState(false);
 	const [isImporting, setIsImporting] = useState(false);
-	const { importWorkBook, fileName, columns, viewColumns, updateViewColumns, fuseOptions, updateIndexKeys, updateThreshold } =
-		useDataStore();
-	const [slide, setSlide] = useState(fuseOptions.threshold);
+	const {
+		importWorkBook,
+		fileName,
+		columns,
+		viewColumns,
+		updateViewColumns,
+		fuseOptions,
+		updateIndexKeys,
+		updateThreshold,
+		selectedSheet,
+		changeSheet,
+		workBook,
+		clear,
+	} = useDataStore();
+
 	const onFileChange: ChangeEventHandler<HTMLInputElement> = async (e) => {
 		if (!e.target.files?.length) return;
 		setIsImporting(true);
@@ -40,16 +55,34 @@ export const SettingsBar = () => {
 		e.target.value = null;
 	};
 
-	const onSlideChange = (v: number) => {
-		setSlide(v);
-		// startTransition(() => {
-		// 	updateThreshold(v);
-		// });
-	};
-
 	return (
 		<Box w="72" borderRight="1px" borderColor="gray.400" h="100vh" px="3" py="2" overflow="auto">
-			{fileName ? <Text color="green.700">{fileName}</Text> : <Text color="orange.500">Chưa có dữ liệu, vui lòng tải file</Text>}
+			{fileName ? (
+				<>
+					<Text color="green.700">{fileName}</Text>
+					<Button leftIcon={<DeleteIcon />} colorScheme="red" variant="solid" size="sm" onClick={clear}>
+						Xóa
+					</Button>
+					<FormControl size="sm" mt={3}>
+						<FormLabel>Sheet</FormLabel>
+						<Select
+							size="sm"
+							value={selectedSheet || undefined}
+							onChange={(e) => {
+								changeSheet(e.target.value);
+							}}
+						>
+							{workBook?.SheetNames.map((s) => (
+								<option key={s} value={s}>
+									{s}
+								</option>
+							))}
+						</Select>
+					</FormControl>
+				</>
+			) : (
+				<Text color="orange.500">Chưa có dữ liệu, vui lòng tải file</Text>
+			)}
 
 			<Text fontSize="lg" fontWeight="semibold" mt="3">
 				Tải file excel (.xlsx, .xls, .csv)
