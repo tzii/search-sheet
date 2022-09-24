@@ -1,10 +1,13 @@
 import { Box, Flex, Input, InputGroup, InputLeftAddon, Text } from '@chakra-ui/react';
 import { useDataStore } from '@stores';
 import Image from 'next/image';
-import DataGrid from 'react-data-grid';
-import { useEffect, useState, ChangeEventHandler, useTransition } from 'react';
+import DataGrid, { CopyEvent, HeaderRendererProps, Row } from 'react-data-grid';
+import { useEffect, useState, ChangeEventHandler, useTransition, useMemo } from 'react';
 import { SearchIcon } from '@chakra-ui/icons';
 import Fuse from 'fuse.js';
+import { DraggableHeaderRenderer } from './DragableHeader';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 
 const options: Fuse.IFuseOptions<unknown> = {
 	threshold: 0.2,
@@ -14,14 +17,30 @@ const options: Fuse.IFuseOptions<unknown> = {
 
 export const ViewData = () => {
 	const [search, setSearch] = useState('');
-	const { tableData, columns, viewColumns, indexKeys } = useDataStore();
+	const { tableData, columns, viewColumns, indexKeys, updateViewColumns } = useDataStore();
 	const [fuse, setFuse] = useState(new Fuse(tableData || [], { ...options, keys: indexKeys }));
 	const [filtedData, SetFiltedData] = useState(tableData);
 	const [isPending, startTransition] = useTransition();
+	const draggableColumns = useMemo(() => {
+		function headerRenderer(props: HeaderRendererProps<unknown>) {
+			return <DraggableHeaderRenderer {...props} onColumnsReorder={handleColumnsReorder} />;
+		}
 
+		function handleColumnsReorder(sourceKey: string, targetKey: string) {
+			const sourceColumnIndex = viewColumns.findIndex((c) => c.key === sourceKey);
+			const targetColumnIndex = viewColumns.findIndex((c) => c.key === targetKey);
+			const reorderedColumns = [...viewColumns];
+
+			reorderedColumns.splice(targetColumnIndex, 0, reorderedColumns.splice(sourceColumnIndex, 1)[0]);
+
+			// setColumns(reorderedColumns);
+			updateViewColumns(reorderedColumns.map((c) => c.key));
+		}
+
+		return viewColumns.map((c) => ({ ...c, headerRenderer }));
+	}, [viewColumns]);
 	useEffect(() => {
 		setFuse(new Fuse(tableData || [], { ...options, keys: indexKeys }));
-		console.log(indexKeys);
 	}, [tableData, indexKeys]);
 
 	useEffect(() => {
@@ -39,6 +58,12 @@ export const ViewData = () => {
 	const onSearchChange: ChangeEventHandler<HTMLInputElement> = (e) => {
 		setSearch(e.target.value);
 	};
+	function handleCopy({ sourceRow, sourceColumnKey }: CopyEvent<unknown>): void {
+		if (window.isSecureContext) {
+			// @ts-ignore
+			navigator.clipboard.writeText(sourceRow[sourceColumnKey]);
+		}
+	}
 
 	return (
 		<Flex py="2" px="3" flex="1" flexDirection="column" overflow="hidden" blockSize="100vh">
@@ -61,14 +86,17 @@ export const ViewData = () => {
 			) : !filtedData ? (
 				<Text>Không tìm thấy kết quả</Text>
 			) : (
-				<DataGrid
-					rows={filtedData}
-					columns={viewColumns}
-					defaultColumnOptions={{
-						resizable: true,
-					}}
-					style={{ blockSize: '100%' }}
-				/>
+				<DndProvider backend={HTML5Backend}>
+					<DataGrid
+						rows={filtedData}
+						columns={draggableColumns}
+						defaultColumnOptions={{
+							resizable: true,
+						}}
+						onCopy={handleCopy}
+						style={{ blockSize: '100%' }}
+					/>
+				</DndProvider>
 			)}
 		</Flex>
 	);

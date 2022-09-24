@@ -47,7 +47,7 @@ export const useDataStore = create<DataState>()(
 					});
 				},
 				updateViewColumns: (cs: string[]) => {
-					set({ viewColumns: get().columns.filter((column) => cs.includes(column.key)) });
+					set({ viewColumns: cs.map((c) => get().columns.find((column) => column.key == c) as Column<unknown>) });
 				},
 				updateIndexKeys: (keys: string[]) => {
 					set({ indexKeys: keys });
